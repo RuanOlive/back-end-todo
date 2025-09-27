@@ -4,10 +4,13 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
 import { TasksService } from './tasks.service';
+import { UpdateTaskDto } from './dto/update-task.dto';
+import { CreateTaskDto } from './dto/create-task.dto';
 
 @Controller('tasks')
 export class TasksController {
@@ -19,22 +22,22 @@ export class TasksController {
   }
 
   @Get(':id')
-  findOneTask(@Param('id') id: string) {
+  findOneTask(@Param('id', ParseIntPipe) id: number) {
     return this.taskService.listOne(id);
   }
 
   @Patch(':id')
-  alterateTask(@Param('id') id: string, @Body() body: any) {
+  alterateTask(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateTaskDto) {
     return this.taskService.update(id, body);
   }
 
   @Delete(':id')
-  deleteTask(@Param('id') id: string, @Body() body: any) {
+  deleteTask(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
     return this.taskService.delete(id);
   }
 
   @Post('/create')
-  createTask(@Body() body: any) {
+  createTask(@Body() body: CreateTaskDto) {
     return this.taskService.create(body);
   }
 }
