@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, MinLength, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsString, MinLength, MaxLength, IsNumber, IsOptional} from 'class-validator';
 
 export class CreateTaskDto {
   @IsString({ message: 'O nome deve ser um texto válido.' })
@@ -8,8 +8,12 @@ export class CreateTaskDto {
   readonly name: string;
 
   @IsString({ message: 'A descrição deve ser um texto válido.' })
-  @IsNotEmpty({ message: 'A descrição da tarefa é obrigatória.' })
+  @IsOptional()
   @MinLength(5, { message: 'A descrição deve ter no mínimo 5 caracteres.' })
   @MaxLength(255, { message: 'A descrição pode ter no máximo 255 caracteres.' })
-  readonly description: string;
+  readonly description?: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  readonly userId: number;
 }
