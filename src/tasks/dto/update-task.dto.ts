@@ -4,6 +4,6 @@ import { CreateTaskDto } from './create-task.dto';
 
 export class UpdateTaskDto extends PartialType(CreateTaskDto) {
   @IsOptional()
-  @IsBoolean()
+  @IsBoolean({ message: 'O campo completed deve ser um valor booleano (true ou false).' })
   readonly completed?: boolean;
 }

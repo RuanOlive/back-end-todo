@@ -26,28 +26,28 @@ export class TasksController {
   @Get()
   @UseInterceptors(LoggerInterceptor)
   @UseInterceptors(AddHeaderInterceptor)
-  findAllTasks(@Query() query: PaginationDto) {
-    return this.taskService.listAll(query);
+  listAllTasks(@Query() query: PaginationDto) {
+    return this.taskService.listAllTasks(query);
   }
 
   @Get(':id')
-  findOneTask(@Param('id', ParseIntPipe) id: number) {
-    return this.taskService.listOne(id);
+  listOneTask(@Param('id', ParseIntPipe) id: number) {
+    return this.taskService.listOneTask(id);
   }
 
   @Patch(':id')
-  alterateTask(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateTaskDto) {
-    return this.taskService.update(id, body);
+  updateTask(@Param('id', ParseIntPipe) id: number, @Body() body: UpdateTaskDto) {
+    return this.taskService.updateTask(id, body);
   }
 
   @Delete(':id')
-  deleteTask(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
-    return this.taskService.delete(id);
+  deleteTask(@Param('id', ParseIntPipe) id: number) {
+    return this.taskService.deleteTask(id);
   }
 
   @Post('/create')
   @UseInterceptors(CreateTaskInterceptor)
   createTask(@Body() body: CreateTaskDto) {
-    return this.taskService.create(body);
+    return this.taskService.createTask(body);
   }
 }

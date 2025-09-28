@@ -8,24 +8,25 @@ import { PaginationDto } from 'src/common/dto/pagination.dto';
 export class TasksService {
   constructor(private prisma: PrismaService) {}
 
-  async listAll(query: PaginationDto)  {
+  async listAllTasks(query: PaginationDto) {
     try {
-
-      const {limit = 10, offset = 0} = query;
+      const { limit = 10, offset = 0 } = query;
 
       const allTasks = await this.prisma.task.findMany({
         take: limit,
         skip: offset,
       });
       return allTasks;
-    } catch(err) {
-      console.log(err)
-      throw new HttpException('Erro', HttpStatus.BAD_REQUEST)
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(
+        'Erro ao tentar listar as tasks.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
-    
   }
 
-  async listOne(id: number) {
+  async listOneTask(id: number) {
     try {
       const task = await this.prisma.task.findUnique({
         where: {
@@ -34,26 +35,24 @@ export class TasksService {
       });
 
       if (!task) {
-        throw new HttpException('Tarefa não encontrada!', HttpStatus.NOT_FOUND)
+        throw new HttpException('Tarefa não encontrada!', HttpStatus.NOT_FOUND);
       }
 
       return task;
-    } catch(err) {
-      console.log(err)
-      throw new HttpException(
-        'Erro',
-        HttpStatus.BAD_REQUEST,
-      );
+    } catch (err) {
+      console.log(err);
+      throw new HttpException('Erro ao listar a Task.', HttpStatus.BAD_REQUEST);
     }
   }
 
-  async create(body: CreateTaskDto) {
+  async createTask(body: CreateTaskDto) {
     try {
       const newTask = await this.prisma.task.create({
         data: {
           name: body.name,
           description: body.description,
           completed: false,
+          userId: 222 //Numero temporario só pra não dar erro até eu fazer o sistema com jwt
         },
       });
 
@@ -64,7 +63,7 @@ export class TasksService {
     }
   }
 
-  async update(id: number, body: UpdateTaskDto) {
+  async updateTask(id: number, body: UpdateTaskDto) {
     try {
       const task = await this.prisma.task.update({
         where: {
@@ -76,11 +75,14 @@ export class TasksService {
       return task;
     } catch (err) {
       console.log(err);
-      throw new HttpException('Erro', HttpStatus.BAD_REQUEST);
+      throw new HttpException(
+        'Erro ao Atualizar a task.',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
-  async delete(id: number) {
+  async deleteTask(id: number) {
     try {
       await this.prisma.task.delete({
         where: {
@@ -93,8 +95,8 @@ export class TasksService {
         HttpStatus.ACCEPTED,
       );
     } catch (err) {
-      console.log(err)
-      throw new HttpException('Erro', HttpStatus.BAD_REQUEST);
+      console.log('Erro ao Deletar Task!', err);
+      throw new HttpException('Erro ao Deletar Task.', HttpStatus.BAD_REQUEST);
     }
   }
 }
