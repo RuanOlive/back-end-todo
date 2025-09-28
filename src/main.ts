@@ -6,7 +6,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true, // Se true não permite adicionar chaves novas que não estão no DTO.
+      whitelist: true, // Remove propriedade não definidas no DTO
       //transform: true, // Tenta fazer transformação de tipo correta de parametro passsado de um controller para um service.
     }),
   );
