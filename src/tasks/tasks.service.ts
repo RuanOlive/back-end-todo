@@ -52,7 +52,7 @@ export class TasksService {
           name: body.name,
           description: body.description,
           completed: false,
-          userId: 222 //Numero temporario só pra não dar erro até eu fazer o sistema com jwt
+          userId: body.userId
         },
       });
 
@@ -65,14 +65,28 @@ export class TasksService {
 
   async updateTask(id: number, body: UpdateTaskDto) {
     try {
-      const task = await this.prisma.task.update({
+      const foundTask = await this.prisma.task.findUnique({
+        where: {
+          id: id
+        }
+      })
+
+      if (!foundTask) {
+        throw new HttpException('Tarefa não encontrada!', HttpStatus.NOT_FOUND);
+      }
+      
+      const updatedTask = await this.prisma.task.update({
         where: {
           id: id,
         },
-        data: body,
+        data: {
+          name: body.name ?? foundTask.name,
+          description: body.description ?? foundTask.description,
+          completed: body.completed ?? foundTask.completed
+        },
       });
 
-      return task;
+      return updatedTask;
     } catch (err) {
       console.log(err);
       throw new HttpException(
