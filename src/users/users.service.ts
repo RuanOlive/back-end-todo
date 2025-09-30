@@ -2,14 +2,19 @@ import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly hashingService : HashingServiceProtocol
+  ) {}
+
   private readonly logger = new Logger(UsersService.name);
 
   async listOneUser(id: number) {
-    this.logger.log(`[Tentativa de listar usuário com id: ${id}]`);
+    this.logger.warn(`[Tentativa de listar usuário com id: ${id}]`);
 
     try {
       const foundUser = await this.prisma.user.findUnique({
@@ -28,7 +33,7 @@ export class UsersService {
 
       return foundUser;
     } catch (error) {
-      this.logger.log(`[Erro ao buscar usuário com id: ${id}]`, error);
+      this.logger.warn(`[Erro ao buscar usuário com id: ${id}]`, error);
 
       throw new HttpException(
         'Erro ao tentar Listar o usuario.',
@@ -38,7 +43,7 @@ export class UsersService {
   }
 
   async deleteUser(id: number) {
-    this.logger.log(`[Tentativa de deletar usuario com id: ${id}]`);
+    this.logger.warn(`[Tentativa de deletar usuario com id: ${id}]`);
 
     try {
       const foundUser = await this.prisma.user.findUnique({
@@ -50,11 +55,11 @@ export class UsersService {
       }
 
       await this.prisma.user.delete({ where: { id } });
-      this.logger.log(`[Usuário com id: ${id}, foi deletado!.]`);
+      this.logger.warn(`[Usuário com id: ${id}, foi deletado!.]`);
 
       return { status: 200, message: 'Usuário deletado com sucesso' };
     } catch (err) {
-      this.logger.log(`[Erro ao deletar usuário com id: ${id} ]`, err);
+      this.logger.warn(`[Erro ao deletar usuário com id: ${id} ]`, err);
 
       throw new HttpException(
         'Erro ao tentar Deletar Usuario',
@@ -64,12 +69,16 @@ export class UsersService {
   }
 
   async createUser(body: CreateUserDto) {
-    this.logger.log(`[Tentativa De Criar Usuario]`);
+    this.logger.warn(`[Tentativa De Criar Usuario]`);
+
+    const hashPassword = await this.hashingService.hash(body.password)
+
+
     try {
       const userCreated = await this.prisma.user.create({
         data: {
           name: body.name,
-          hashPassword: body.password, //Armazenar criando hash da senha!
+          hashPassword: hashPassword, 
           email: body.email,
         },
         select: {
@@ -79,10 +88,10 @@ export class UsersService {
         },
       });
 
-      this.logger.log(`[Usuario com nome : ${body.name}, Criado!]`);
+      this.logger.warn(`[Usuario com nome : ${body.name}, Criado!]`);
       return userCreated;
     } catch (err) {
-      this.logger.log('[Erro ao tentar cadastrar Usuario]', err);
+      this.logger.warn('[Erro ao tentar cadastrar Usuario]', err);
       throw new HttpException(
         'Erro ao tentar cadastrar Usuario',
         HttpStatus.BAD_REQUEST,
@@ -91,25 +100,31 @@ export class UsersService {
   }
 
   async updateUser(id: number, body: UpdateUserDto) {
-    this.logger.log(`[Tentativa de atualizar Usuario com id: ${id}]`);
+    this.logger.warn(`[Tentativa de atualizar Usuario com id: ${id}]`);
     try {
       const foundUser = await this.prisma.user.findUnique({
         where: { id: id },
       });
 
       if (!foundUser) {
-        this.logger.log(`[Usuario com id:${id} não Econtrado!]`);
+        this.logger.warn(`[Usuario com id:${id} não Econtrado!]`);
         throw new HttpException(
           'Usuario Não encontrado!',
           HttpStatus.NOT_FOUND,
         );
       }
 
+
+      const userData = {
+        name: body.name ? body.name: foundUser.name,
+        hashPassword: body.password ? await this.hashingService.hash(body.password) : foundUser.hashPassword
+      }
+
       const updatedUser = await this.prisma.user.update({
         where: { id: id },
         data: {
-          name: body.name ?? foundUser.name,
-          hashPassword: body.password ?? foundUser.hashPassword, // Atualizar Armazenando Hash de senha depois
+          name: userData.name,
+          hashPassword: userData.hashPassword, 
         },
         select: {
           id: true,
@@ -117,11 +132,11 @@ export class UsersService {
           email: true,
         },
       });
-      this.logger.log(`[Usuario com id: ${id} foi atualizado!]`);
+      this.logger.warn(`[Usuario com id: ${id} foi atualizado!]`);
 
       return updatedUser;
     } catch (error) {
-      this.logger.log(
+      this.logger.warn(
         `[Erro a tentar atualizar Usuario com id: ${id} ]`,
         error,
       );
@@ -131,4 +146,5 @@ export class UsersService {
       );
     }
   }
+
 }
