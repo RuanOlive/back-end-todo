@@ -14,7 +14,7 @@ export class LoggerInterceptor implements NestInterceptor{
     const now = Date.now();
 
 
-
+    console.log("[Logger Interceptor Chamado!]")
     console.log(`Request ${method} : ${url}`)
 
     return next.handle().pipe(
