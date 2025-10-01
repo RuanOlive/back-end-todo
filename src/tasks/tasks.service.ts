@@ -3,6 +3,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
 
 @Injectable()
 export class TasksService {
@@ -12,105 +13,95 @@ export class TasksService {
     try {
       const { limit = 10, offset = 0 } = query;
 
-      const allTasks = await this.prisma.task.findMany({
+      return await this.prisma.task.findMany({
         take: limit,
         skip: offset,
       });
-      return allTasks;
-    } catch (err) {
-      console.log(err);
+    } catch {
       throw new HttpException(
         'Erro ao tentar listar as tasks.',
-        HttpStatus.BAD_REQUEST,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
   async listOneTask(id: number) {
     try {
-      const task = await this.prisma.task.findUnique({
-        where: {
-          id: id,
-        },
-      });
-
-      if (!task) {
-        throw new HttpException('Tarefa não encontrada!', HttpStatus.NOT_FOUND);
-      }
-
-      return task;
-    } catch (err) {
-      console.log(err);
-      throw new HttpException('Erro ao listar a Task.', HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async createTask(body: CreateTaskDto) {
-    try {
-      const newTask = await this.prisma.task.create({
-        data: {
-          name: body.name,
-          description: body.description,
-          completed: false,
-          userId: body.userId
-        },
-      });
-
-      return newTask;
-    } catch (err) {
-      console.log(err);
-      throw new HttpException('Erro', HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async updateTask(id: number, body: UpdateTaskDto) {
-    try {
       const foundTask = await this.prisma.task.findUnique({
-        where: {
-          id: id
-        }
-      })
+        where: { id },
+      });
 
       if (!foundTask) {
         throw new HttpException('Tarefa não encontrada!', HttpStatus.NOT_FOUND);
       }
-      
-      const updatedTask = await this.prisma.task.update({
-        where: {
-          id: id,
+
+      return foundTask;
+    } catch {
+      throw new HttpException('Erro ao listar a Task.', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async createTask(body: CreateTaskDto, tokenPayload: PayloadTokenDto) {
+    try {
+      return await this.prisma.task.create({
+        data: {
+          name: body.name,
+          description: body.description,
+          completed: false,
+          userId: tokenPayload.sub,
         },
+      });
+    } catch {
+      throw new HttpException('Erro ao criar a task.', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  async updateTask(id: number, body: UpdateTaskDto, tokenPayload: PayloadTokenDto) {
+    try {
+      const foundTask = await this.prisma.task.findUnique({ where: { id } });
+
+      if (!foundTask) {
+        throw new HttpException('Tarefa não encontrada!', HttpStatus.NOT_FOUND);
+      }
+
+      if (foundTask.userId !== tokenPayload.sub) {
+        throw new HttpException('Não autorizado!', HttpStatus.UNAUTHORIZED);
+      }
+
+      return await this.prisma.task.update({
+        where: { id },
         data: {
           name: body.name ?? foundTask.name,
           description: body.description ?? foundTask.description,
-          completed: body.completed ?? foundTask.completed
+          completed: body.completed ?? foundTask.completed,
         },
       });
-
-      return updatedTask;
-    } catch (err) {
-      console.log(err);
+    } catch {
       throw new HttpException(
-        'Erro ao Atualizar a task.',
-        HttpStatus.BAD_REQUEST,
+        'Erro ao atualizar a task.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  async deleteTask(id: number) {
+  async deleteTask(id: number, tokenPayload: PayloadTokenDto) {
     try {
-      await this.prisma.task.delete({
-        where: {
-          id: id,
-        },
-      });
+      const foundTask = await this.prisma.task.findUnique({ where: { id } });
 
-      throw new HttpException(
-        'Tarefa Deletada com sucesso.',
-        HttpStatus.ACCEPTED,
-      );
-    } catch (err) {
-      console.log('Erro ao Deletar Task!', err);
-      throw new HttpException('Erro ao Deletar Task.', HttpStatus.BAD_REQUEST);
+      if (!foundTask) {
+        throw new HttpException('Tarefa não encontrada.', HttpStatus.NOT_FOUND);
+      }
+
+      if (foundTask.userId !== tokenPayload.sub) {
+        throw new HttpException('Não autorizado!', HttpStatus.UNAUTHORIZED);
+      }
+
+      return await this.prisma.task.delete({ 
+        where: { id },
+        select: { id: true, name: true, description: true, completed: true }
+      });
+    } catch {
+      throw new HttpException('Erro ao deletar a task.', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }
