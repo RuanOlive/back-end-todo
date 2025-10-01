@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { HashingServiceProtocol } from 'src/auth/hash/hashing.service';
+import { PayloadTokenDto } from 'src/auth/dto/payload-token.dto';
 
 @Injectable()
 export class UsersService {
@@ -42,7 +43,7 @@ export class UsersService {
     }
   }
 
-  async deleteUser(id: number) {
+  async deleteUser(id: number, tokenPayload: PayloadTokenDto) {
     this.logger.warn(`[Tentativa de deletar usuario com id: ${id}]`);
 
     try {
@@ -52,6 +53,10 @@ export class UsersService {
 
       if (!foundUser) {
         throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
+      }
+
+      if (foundUser.id !== tokenPayload.sub){
+        throw new HttpException('Não autorizado!.', HttpStatus.UNAUTHORIZED);
       }
 
       await this.prisma.user.delete({ where: { id } });
@@ -72,7 +77,6 @@ export class UsersService {
     this.logger.warn(`[Tentativa De Criar Usuario]`);
 
     const hashPassword = await this.hashingService.hash(body.password)
-
 
     try {
       const userCreated = await this.prisma.user.create({
@@ -99,7 +103,8 @@ export class UsersService {
     }
   }
 
-  async updateUser(id: number, body: UpdateUserDto) {
+  async updateUser(id: number, body: UpdateUserDto, tokenPayload:PayloadTokenDto) {
+    console.log(tokenPayload)
     this.logger.warn(`[Tentativa de atualizar Usuario com id: ${id}]`);
     try {
       const foundUser = await this.prisma.user.findUnique({
@@ -112,6 +117,10 @@ export class UsersService {
           'Usuario Não encontrado!',
           HttpStatus.NOT_FOUND,
         );
+      }
+
+      if (foundUser.id !== tokenPayload.sub){
+        throw new HttpException('Não Autorizado!.',HttpStatus.NOT_FOUND,);
       }
 
 

@@ -3,6 +3,7 @@ import { JwtService } from "@nestjs/jwt";
 import jwtConfig from "../config/jwt.config";
 import type { ConfigType } from '@nestjs/config';
 import { REQUEST_TOKEN_PAYLOAD_NAME } from "../constants/auth.constants";
+import { PrismaService } from "src/prisma/prisma.service";
 
 
 @Injectable()
@@ -10,7 +11,8 @@ export class AuthTokenGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
     @Inject(jwtConfig.KEY)
-    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>
+    private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
+    private readonly prisma: PrismaService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -33,6 +35,16 @@ export class AuthTokenGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: this.jwtConfiguration.secret,
       });
+
+      const user = await this.prisma.user.findUnique({
+        where: {
+          id: payload?.sub
+        }
+      })
+      
+      if(!user?.active) {
+        throw new UnauthorizedException('Acesso não autorizado.');
+      }
 
       request[REQUEST_TOKEN_PAYLOAD_NAME] = payload
       
